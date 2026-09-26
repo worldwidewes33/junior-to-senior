@@ -5,10 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lesson 01 — Complexity Is the Enemy: Deep vs. Shallow Modules</title>
 <style>
-  :root{
+  /* Theme: dark is the default; the toggle switches to light and remembers it. */
+  :root, html[data-theme="dark"]{
+    color-scheme:dark;
+    --ink:#e8e4da; --muted:#a39e93; --rule:#3a3631; --bg:#171512;
+    --accent:#d4907a; --accent-soft:#2a201c; --accent-line:rgba(212,144,122,.35);
+    --good:#7fb89a; --bad:#d98a7a; --good-soft:#1d2e26; --bad-soft:#33221e;
+    --code-bg:#221f1b; --surface:#1f1c18; --surface-2:#26221e; --stripe:#2a2622;
+    --on-accent:#171512;
+  }
+  html[data-theme="light"]{
+    color-scheme:light;
     --ink:#1a1a1a; --muted:#6b6b6b; --rule:#d9d4c9; --bg:#fbfaf6;
-    --accent:#7a3b2e; --accent-soft:#f0e8e2; --good:#2f6b4f; --bad:#9a3b2e;
-    --code-bg:#f4f1ea;
+    --accent:#7a3b2e; --accent-soft:#f0e8e2; --accent-line:rgba(122,59,46,.3);
+    --good:#2f6b4f; --bad:#9a3b2e; --good-soft:#e6f1ea; --bad-soft:#f6e6e2;
+    --code-bg:#f4f1ea; --surface:#fff; --surface-2:#fcfbf8; --stripe:#f6f3ec;
+    --on-accent:#fff;
+  }
+  .theme-toggle{
+    position:fixed;top:.9rem;right:.9rem;z-index:10;
+    width:2.3rem;height:2.3rem;border-radius:50%;border:1px solid var(--rule);
+    background:var(--surface);color:var(--accent);font-size:1.05rem;line-height:1;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .theme-toggle:hover{border-color:var(--accent)}
+  :root{
     --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
     --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
     --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,monospace;
@@ -40,20 +62,20 @@
   code{font-family:var(--mono);font-size:.82em;background:var(--code-bg);padding:.1em .35em;border-radius:3px}
   pre{background:var(--code-bg);border:1px solid var(--rule);border-radius:6px;padding:1rem 1.2rem;overflow:auto;font-size:.82rem;line-height:1.5}
   pre code{background:none;padding:0}
-  a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(122,59,46,.3)}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-line)}
   a:hover{border-bottom-color:var(--accent)}
   .marginnote{font-family:var(--sans);font-size:.78rem;color:var(--muted);line-height:1.4}
 
   /* Diagram: deep vs shallow */
   .modgrid{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem;margin:1.6rem 0}
   @media(max-width:520px){.modgrid{grid-template-columns:1fr}}
-  .mod{border:1px solid var(--rule);border-radius:8px;background:#fff;padding:0;overflow:hidden}
+  .mod{border:1px solid var(--rule);border-radius:8px;background:var(--surface);padding:0;overflow:hidden}
   .mod .iface{padding:.55rem;text-align:center;font-family:var(--sans);font-size:.72rem;
-    letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#fff}
+    letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--on-accent)}
   .deep .iface{background:var(--good)}
   .shallow .iface{background:var(--bad)}
   .mod .impl{font-family:var(--sans);font-size:.74rem;color:var(--muted);text-align:center;
-    padding:.6rem;background:repeating-linear-gradient(45deg,#fff,#fff 6px,#f6f3ec 6px,#f6f3ec 12px)}
+    padding:.6rem;background:repeating-linear-gradient(45deg,var(--surface),var(--surface) 6px,var(--stripe) 6px,var(--stripe) 12px)}
   .deep .impl{padding:2.6rem .6rem}
   .shallow .impl{padding:.7rem .6rem}
   .mod .label{font-family:var(--sans);font-size:.8rem;text-align:center;padding:.55rem;font-weight:600;border-top:1px solid var(--rule)}
@@ -67,15 +89,15 @@
     text-transform:uppercase;color:var(--accent);display:block;margin-bottom:.35rem}
 
   /* quiz */
-  .quiz{border:1px solid var(--rule);border-radius:10px;background:#fff;padding:1.4rem 1.5rem;margin:1.4rem 0}
+  .quiz{border:1px solid var(--rule);border-radius:10px;background:var(--surface);padding:1.4rem 1.5rem;margin:1.4rem 0}
   .q{font-weight:600;margin:0 0 .9rem}
   .q .n{color:var(--accent);font-family:var(--sans);font-size:.8rem;font-weight:700}
   .opts{display:flex;gap:.7rem;flex-wrap:wrap}
   .opt{font-family:var(--sans);font-size:.9rem;font-weight:600;cursor:pointer;
-    border:1px solid var(--rule);background:#fcfbf8;border-radius:6px;padding:.5rem 1.4rem;transition:.12s}
+    border:1px solid var(--rule);background:var(--surface-2);border-radius:6px;padding:.5rem 1.4rem;transition:.12s}
   .opt:hover{border-color:var(--accent)}
-  .opt.correct{background:#e6f1ea;border-color:var(--good);color:var(--good)}
-  .opt.wrong{background:#f6e6e2;border-color:var(--bad);color:var(--bad)}
+  .opt.correct{background:var(--good-soft);border-color:var(--good);color:var(--good)}
+  .opt.wrong{background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
   .fb{font-family:var(--sans);font-size:.86rem;margin-top:.8rem;padding-top:.7rem;
     border-top:1px dashed var(--rule);color:var(--muted);display:none;line-height:1.45}
   .fb.show{display:block}
@@ -88,18 +110,31 @@
   .footer{font-family:var(--sans);font-size:.85rem;color:var(--muted);margin-top:3rem;
     border-top:2px solid var(--ink);padding-top:1rem}
   .footer a{font-weight:600}
-  .source{background:#fff;border:1px solid var(--rule);border-radius:8px;padding:1rem 1.2rem;font-family:var(--sans);font-size:.9rem}
+  .source{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:1rem 1.2rem;font-family:var(--sans);font-size:.9rem}
   .source .t{font-weight:700;color:var(--accent);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:.4rem}
   ul{padding-left:1.2rem}
   li{margin:.35rem 0}
   .task{counter-reset:step;list-style:none;padding-left:0}
   .task li{padding-left:2.2rem;position:relative;margin:.7rem 0}
   .task li::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:0;
-    width:1.5rem;height:1.5rem;background:var(--accent);color:#fff;border-radius:50%;
+    width:1.5rem;height:1.5rem;background:var(--accent);color:var(--on-accent);border-radius:50%;
     font-family:var(--sans);font-size:.8rem;font-weight:700;display:flex;align-items:center;justify-content:center}
 </style>
+<script>
+  (function(){var t;try{t=localStorage.getItem('theme')}catch(e){}
+  document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark')})();
+</script>
 </head>
 <body>
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch between dark and light theme">☾</button>
+<script>
+  (function(){var b=document.getElementById('themeToggle'),h=document.documentElement;
+  function paint(){b.textContent=h.getAttribute('data-theme')==='dark'?'☀':'☾'}
+  b.addEventListener('click',function(){var n=h.getAttribute('data-theme')==='dark'?'light':'dark';
+    h.setAttribute('data-theme',n);try{localStorage.setItem('theme',n)}catch(e){}paint()});
+  paint()})();
+</script>
+
 <div class="wrap">
 
   <div class="kicker">Strategic Programming · Lesson 01 · System &amp; Codebase Design</div>

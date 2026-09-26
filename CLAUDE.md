@@ -22,3 +22,8 @@ never reaches the learner's devices.
 - Self-contained: inline CSS and JS. No external assets except Google Fonts.
 - Mobile-first: they are read on a phone. Include the viewport meta tag.
 - Give each page a descriptive <title>; it becomes the link text on the index.
+- Themed: dark by default with a light toggle. Copy the three parts of
+  templates/theme-snippet.html into every new page and use only the CSS
+  variables it defines (--ink, --bg, --surface, --accent, --good, --bad, ...).
+  Never hardcode a color; it will break one of the two themes. Use
+  lessons/0001-deep-vs-shallow-modules.html as the reference implementation.
