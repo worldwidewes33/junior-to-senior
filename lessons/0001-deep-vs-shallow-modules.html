@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 01 — Complexity Is the Enemy: Deep vs. Shallow Modules</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --muted:#6b6b6b; --rule:#d9d4c9; --bg:#fbfaf6;
+    --accent:#7a3b2e; --accent-soft:#f0e8e2; --good:#2f6b4f; --bad:#9a3b2e;
+    --code-bg:#f4f1ea;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html{font-size:18px}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--serif);line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:46rem;margin:0 auto;padding:4rem 1.6rem 6rem}
+  .kicker{
+    font-family:var(--sans);font-size:.72rem;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:.8rem;
+  }
+  h1{font-size:2.1rem;line-height:1.12;margin:.2rem 0 .4rem;font-weight:600;letter-spacing:-.01em}
+  .dek{font-size:1.12rem;color:var(--muted);font-style:italic;margin:0 0 2.2rem;max-width:34rem}
+  h2{
+    font-family:var(--sans);font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;
+    font-weight:700;color:var(--accent);margin:2.8rem 0 1rem;
+    padding-bottom:.4rem;border-bottom:1px solid var(--rule);
+  }
+  h3{font-size:1.15rem;margin:1.8rem 0 .5rem;font-weight:600}
+  p{margin:.7rem 0}
+  .lead{font-size:1.05rem}
+  strong{font-weight:650}
+  em.term{font-style:normal;font-weight:600;color:var(--accent)}
+  code{font-family:var(--mono);font-size:.82em;background:var(--code-bg);padding:.1em .35em;border-radius:3px}
+  pre{background:var(--code-bg);border:1px solid var(--rule);border-radius:6px;padding:1rem 1.2rem;overflow:auto;font-size:.82rem;line-height:1.5}
+  pre code{background:none;padding:0}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(122,59,46,.3)}
+  a:hover{border-bottom-color:var(--accent)}
+  .marginnote{font-family:var(--sans);font-size:.78rem;color:var(--muted);line-height:1.4}
+
+  /* Diagram: deep vs shallow */
+  .modgrid{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem;margin:1.6rem 0}
+  @media(max-width:520px){.modgrid{grid-template-columns:1fr}}
+  .mod{border:1px solid var(--rule);border-radius:8px;background:#fff;padding:0;overflow:hidden}
+  .mod .iface{padding:.55rem;text-align:center;font-family:var(--sans);font-size:.72rem;
+    letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#fff}
+  .deep .iface{background:var(--good)}
+  .shallow .iface{background:var(--bad)}
+  .mod .impl{font-family:var(--sans);font-size:.74rem;color:var(--muted);text-align:center;
+    padding:.6rem;background:repeating-linear-gradient(45deg,#fff,#fff 6px,#f6f3ec 6px,#f6f3ec 12px)}
+  .deep .impl{padding:2.6rem .6rem}
+  .shallow .impl{padding:.7rem .6rem}
+  .mod .label{font-family:var(--sans);font-size:.8rem;text-align:center;padding:.55rem;font-weight:600;border-top:1px solid var(--rule)}
+  .deep .label{color:var(--good)}
+  .shallow .label{color:var(--bad)}
+
+  /* callout */
+  .callout{background:var(--accent-soft);border-left:3px solid var(--accent);
+    padding:1rem 1.2rem;margin:1.6rem 0;border-radius:0 6px 6px 0;font-size:.96rem}
+  .callout .t{font-family:var(--sans);font-weight:700;font-size:.74rem;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--accent);display:block;margin-bottom:.35rem}
+
+  /* quiz */
+  .quiz{border:1px solid var(--rule);border-radius:10px;background:#fff;padding:1.4rem 1.5rem;margin:1.4rem 0}
+  .q{font-weight:600;margin:0 0 .9rem}
+  .q .n{color:var(--accent);font-family:var(--sans);font-size:.8rem;font-weight:700}
+  .opts{display:flex;gap:.7rem;flex-wrap:wrap}
+  .opt{font-family:var(--sans);font-size:.9rem;font-weight:600;cursor:pointer;
+    border:1px solid var(--rule);background:#fcfbf8;border-radius:6px;padding:.5rem 1.4rem;transition:.12s}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:#e6f1ea;border-color:var(--good);color:var(--good)}
+  .opt.wrong{background:#f6e6e2;border-color:var(--bad);color:var(--bad)}
+  .fb{font-family:var(--sans);font-size:.86rem;margin-top:.8rem;padding-top:.7rem;
+    border-top:1px dashed var(--rule);color:var(--muted);display:none;line-height:1.45}
+  .fb.show{display:block}
+  .fb code{font-size:.82em}
+
+  .snippet-q{background:var(--code-bg);border-radius:6px;padding:.7rem 1rem;font-family:var(--mono);
+    font-size:.78rem;line-height:1.5;margin:.7rem 0;white-space:pre-wrap}
+
+  hr.div{border:0;border-top:1px solid var(--rule);margin:2.6rem 0}
+  .footer{font-family:var(--sans);font-size:.85rem;color:var(--muted);margin-top:3rem;
+    border-top:2px solid var(--ink);padding-top:1rem}
+  .footer a{font-weight:600}
+  .source{background:#fff;border:1px solid var(--rule);border-radius:8px;padding:1rem 1.2rem;font-family:var(--sans);font-size:.9rem}
+  .source .t{font-weight:700;color:var(--accent);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:.4rem}
+  ul{padding-left:1.2rem}
+  li{margin:.35rem 0}
+  .task{counter-reset:step;list-style:none;padding-left:0}
+  .task li{padding-left:2.2rem;position:relative;margin:.7rem 0}
+  .task li::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:0;
+    width:1.5rem;height:1.5rem;background:var(--accent);color:#fff;border-radius:50%;
+    font-family:var(--sans);font-size:.8rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">Strategic Programming · Lesson 01 · System &amp; Codebase Design</div>
+  <h1>Complexity Is the Enemy</h1>
+  <p class="dek">Before patterns, before architecture diagrams — the one thing every design decision is secretly about. And the one judgment AI can't make for you.</p>
+
+  <p class="lead">You asked to start with the hardest strategic muscle: <strong>codebase design</strong>. Here's the reframe that makes it learnable. "Design" sounds like it's about diagrams, layers, and design patterns. It isn't. Underneath all of it is a single goal:</p>
+
+  <div class="callout">
+    <span class="t">The whole game</span>
+    Good design is <strong>the ongoing fight to keep complexity from accumulating</strong>. Every other principle — modularity, abstraction, "clean code" — is a tactic in that fight. <span class="marginnote">— the central thesis of John Ousterhout's <em>A Philosophy of Software Design</em>.</span>
+  </div>
+
+  <p>Why does this matter <em>now</em>, for you? Because AI has changed what's scarce. AI will happily generate a thousand lines that work. What it won't reliably do is tell you whether those thousand lines made your codebase <strong>easier or harder to change next month</strong>. That judgment — is this design adding or removing complexity? — is the strategic skill. It's what you'll be paid for when the typing is free.</p>
+
+  <h2>Knowledge · What complexity actually is</h2>
+
+  <p>Complexity isn't "lines of code" or "this is hard math." Ousterhout gives a precise, usable definition: <strong>complexity is anything about a system's structure that makes it hard to understand or modify.</strong> It shows up as three symptoms:</p>
+
+  <ul>
+    <li><strong>Change amplification</strong> — a simple change requires edits in many places.</li>
+    <li><strong>Cognitive load</strong> — you must hold a lot in your head to make a change safely.</li>
+    <li><strong>Unknown unknowns</strong> — it's not obvious <em>what</em> you need to change, or what your change will break. (Ousterhout calls this the worst one.)</li>
+  </ul>
+
+  <p>And it comes from two root causes: <em class="term">dependencies</em> (one piece can't be understood or changed in isolation) and <em class="term">obscurity</em> (important information isn't obvious). Almost every design technique is an attempt to reduce one of these.</p>
+
+  <h2>Knowledge · The sharpest tool — module depth</h2>
+
+  <p>Think of any unit of code — a function, a class, a service — as having two parts:</p>
+
+  <p style="text-align:center;font-family:var(--sans);font-size:.95rem;margin:1.2rem 0">
+    <strong>Interface</strong> (what a caller must know to use it)
+    &nbsp;&nbsp;vs.&nbsp;&nbsp;
+    <strong>Implementation</strong> (the machinery inside)
+  </p>
+
+  <p>The <strong>cost</strong> of a module is its interface — that's the complexity it imposes on everyone who uses it. The <strong>benefit</strong> is its functionality. So the best modules give you a lot of functionality behind a tiny interface. Ousterhout calls these <em class="term">deep</em>. The opposite — a big interface wrapping little functionality — is <em class="term">shallow</em>, and it can be <strong>worse than no abstraction at all</strong>, because you pay the interface cost without getting much hidden in return.</p>
+
+  <div class="modgrid">
+    <div class="mod deep">
+      <div class="iface">small interface</div>
+      <div class="impl">lots of functionality<br>hidden inside</div>
+      <div class="label">DEEP ✓ &nbsp;high value</div>
+    </div>
+    <div class="mod shallow">
+      <div class="iface">big interface</div>
+      <div class="impl">barely does anything</div>
+      <div class="label">SHALLOW ✗ &nbsp;low / negative value</div>
+    </div>
+  </div>
+
+  <p class="marginnote">The classic deep module: Unix file I/O. The interface is five calls — <code>open, read, write, close, lseek</code> — yet it hides buffering, disk scheduling, block allocation, permissions, and device differences. Enormous power, tiny surface. That's depth.</p>
+
+  <p>A shallow module looks like this — an interface as complex as the thing it "hides":</p>
+
+  <pre><code>// Shallow: the interface tells you everything the body does.
+// Pure cost, almost no benefit.
+private void addNullValueForAttribute(String attribute) {
+    data.put(attribute, null);
+}</code></pre>
+
+  <p>This is the trap AI tooling pushes you toward. Ask an agent to "refactor for clean code" and you often get <em>more</em> small classes, pass-through wrappers, and one-line helpers — <strong>classitis</strong>, more interfaces to learn, complexity going <em>up</em>. The code looks tidy and is strictly worse. Catching that is your job, not the model's.</p>
+
+  <div class="callout">
+    <span class="t">The judgment to internalize</span>
+    For any abstraction, ask: <strong>"Is the interface much simpler than what it does for me?"</strong> If the interface is about as complex as just doing the work inline, the abstraction hasn't earned its place. Depth, not count, is the measure of good modularity.
+  </div>
+
+  <h2>Skill · Classify these (immediate feedback)</h2>
+  <p>Retrieval practice beats re-reading. Decide before you click — then read the feedback even when you're right.</p>
+
+  <div class="quiz" id="quiz">
+
+    <div class="q"><span class="n">Q1.</span> A <code>Map</code> in a standard library: <code>get</code>, <code>put</code>, <code>remove</code>, <code>size</code> — hiding hashing, resizing, collision handling, load factors.</div>
+    <div class="opts" data-answer="deep">
+      <span class="opt">Deep</span><span class="opt">Shallow</span>
+    </div>
+    <div class="fb"></div>
+
+    <div class="q"><span class="n">Q2.</span> A class <code>TextDocument</code> whose only methods are <code>getText()</code> and <code>setText(s)</code> wrapping a single string field.</div>
+    <div class="opts" data-answer="shallow">
+      <span class="opt">Deep</span><span class="opt">Shallow</span>
+    </div>
+    <div class="fb"></div>
+
+    <div class="q"><span class="n">Q3.</span> A garbage collector exposed to the program as… nothing. No interface at all; it just runs.</div>
+    <div class="opts" data-answer="deep">
+      <span class="opt">Deep</span><span class="opt">Shallow</span>
+    </div>
+    <div class="fb"></div>
+
+    <div class="q"><span class="n">Q4.</span> A method <code>isValidEmail(s)</code>: one call in, boolean out, hiding a gnarly regex and edge-case rules.</div>
+    <div class="opts" data-answer="deep">
+      <span class="opt">Deep</span><span class="opt">Shallow</span>
+    </div>
+    <div class="fb"></div>
+
+  </div>
+
+  <h2>Skill · Apply it to your own code (project-driven)</h2>
+  <p>This is where it sticks. You learn best against real work, so:</p>
+  <ol class="task">
+    <li>Open a file you've touched in the last week. Pick one function or class.</li>
+    <li>Write its interface in one line (name + params + what a caller must know). Now eyeball its body. <strong>Is the interface clearly simpler than the body?</strong></li>
+    <li>Find one <em>shallow</em> module — a wrapper, a pass-through, a class that's basically a struct with getters. Decide: should it be inlined, or deepened by absorbing nearby logic?</li>
+    <li>Bring it to our next session. We'll use it as the anchor for Lesson 02.</li>
+  </ol>
+
+  <div class="callout">
+    <span class="t">Ask your teacher</span>
+    I'm your teacher for this, not just a lesson generator. Paste a real snippet and ask <em>"deep or shallow?"</em> — or push back if a classification above feels wrong. Arguing the edge cases is exactly how this judgment forms.
+  </div>
+
+  <hr class="div">
+
+  <div class="source">
+    <span class="t">Primary source — read / watch this</span>
+    <strong>John Ousterhout — <em>A Philosophy of Software Design</em></strong> (Stanford). The whole book is short and about exactly this. If you watch one thing: his <a href="https://www.youtube.com/watch?v=bmSAYlu0NcY" target="_blank">Talks at Google session</a> (≈1 hr). Chapters 2–4 (complexity; modules should be deep) cover today's lesson. Full reading list in <a href="../RESOURCES.md">RESOURCES.md</a>.
+  </div>
+
+  <div class="footer">
+    <strong>Lesson 01 of an ongoing series.</strong><br>
+    Up next → <em>Lesson 02: Information hiding &amp; "define errors out of existence"</em> — making modules deep on purpose, anchored to the shallow module you find.<br><br>
+    See also: <a href="../reference/design-heuristics.html">Reference — Design Heuristics Card</a> · <a href="../MISSION.md">Mission</a><br>
+    <span class="marginnote">Built for the "junior → senior in the AI era" track.</span>
+  </div>
+
+</div>
+
+<script>
+  document.querySelectorAll('#quiz .opts').forEach(function(group){
+    var answer = group.getAttribute('data-answer');
+    var fb = group.parentNode.querySelector('.fb');
+    var feedback = {
+      deep: "Correct — small interface, large hidden implementation. That's depth: high benefit, low cost.",
+      shallow: "Correct — the interface is as big as what it hides, so it adds cost without buying you much."
+    };
+    group.querySelectorAll('.opt').forEach(function(opt){
+      opt.addEventListener('click', function(){
+        if(group.dataset.done) return;
+        group.dataset.done = "1";
+        var picked = opt.textContent.trim().toLowerCase();
+        var right = picked === answer;
+        opt.classList.add(right ? 'correct' : 'wrong');
+        if(!right){
+          group.querySelectorAll('.opt').forEach(function(o){
+            if(o.textContent.trim().toLowerCase() === answer) o.classList.add('correct');
+          });
+        }
+        fb.textContent = (right ? "✓ " : "✗ ") + feedback[answer];
+        fb.classList.add('show');
+      });
+    });
+  });
+</script>
+</body>
+</html>
